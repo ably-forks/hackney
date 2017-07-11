@@ -64,10 +64,12 @@ checkout(Host0, Port, Transport, #client{options=Opts}=Client) ->
   Name = proplists:get_value(pool, Opts, default),
   Pool = find_pool(Name, Opts),
   ConnectTimeout = proplists:get_value(connect_timeout, Opts, 8000),
+  ?report_trace("fetching a socket from the pool", [{poolname, Name}]),
   case catch gen_server:call(Pool, {checkout, {Host, Port, Transport},
     Pid, RequestRef}, ConnectTimeout) of
     {ok, Socket, Owner} ->
       CheckinReference = {Host, Port, Transport},
+      ?report_trace("checked out a socket from the pool", [{checkinref, CheckinReference}, {socket, Socket}]),
       {ok, {Name, RequestRef, CheckinReference, Owner, Transport}, Socket};
     {error, no_socket, Owner} ->
       CheckinReference = {Host, Port, Transport},
@@ -297,7 +299,16 @@ handle_call({count, Key}, _From, #state{connections=Conns}=State) ->
            error ->
              0
          end,
-  {reply, Size, State}.
+  {reply, Size, State};
+
+handle_call(stats, _From, State) ->
+  {reply, [{conns, State#state.connections},
+           {metrics, State#state.metrics},
+           {max_connections, State#state.max_connections},
+           {clients, State#state.clients},
+           {queues, State#state.queues},
+           {nb_waiters, State#state.nb_waiters}
+          ], State}.
 
 handle_cast({set_maxconn, MaxConn}, State) ->
   {noreply, State#state{max_connections=MaxConn}};

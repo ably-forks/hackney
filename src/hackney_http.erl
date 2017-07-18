@@ -58,6 +58,7 @@
 -export([parse_response_version/2]).
 
 -include("hackney_lib.hrl").
+-include("hackney_internal.hrl").
 
 
 -opaque parser() :: #hparser{}.
@@ -134,6 +135,7 @@ execute(St) ->
 %% @doc Execute the parser with the new buffer
 -spec execute(#hparser{}, binary()) -> parser_result().
 execute(#hparser{state=Status, buffer=Buffer}=St, Bin) ->
+  ?report_trace("execute", [{state, Status}, {buffer, Buffer}, {bin, Bin}]),
   %% update the state with the new buffer
   NBuffer = << Buffer/binary, Bin/binary >>,
   St1 = St#hparser{buffer=NBuffer},
